@@ -5,7 +5,6 @@ class StorieModel {
   String? username;
   String? avatar;
   bool? isOwn;
-  bool? read;
   List<StoryModel> stories;
 
   StorieModel({
@@ -13,7 +12,6 @@ class StorieModel {
     this.username,
     this.avatar,
     this.isOwn,
-    this.read,
     this.stories = const [],
   });
 
@@ -22,7 +20,6 @@ class StorieModel {
     username = json['username']?.toString();
     avatar = json['avatar']?.toString();
     isOwn = _parseBool(json['is_own']);
-    read = _parseBool(json['read']);
     final storiesJson = json['stories'];
     if (storiesJson is List) {
       stories = storiesJson

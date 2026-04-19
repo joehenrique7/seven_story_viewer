@@ -12,6 +12,7 @@ class StoryModel {
   double fontSize;
   Duration duration;
   bool isLiked;
+  bool isViewed;
 
   StoryModel({
     this.id = 0,
@@ -23,6 +24,7 @@ class StoryModel {
     this.fontSize = 24,
     this.duration = const Duration(seconds: 5),
     this.isLiked = false,
+    this.isViewed = false,
   });
 
   StoryModel.fromJson(Map<String, dynamic> json)
@@ -32,7 +34,8 @@ class StoryModel {
         textColor = Colors.white,
         fontSize = 24,
         duration = const Duration(seconds: 5),
-        isLiked = false {
+        isLiked = false,
+        isViewed = false {
     id = _parseInt(json['id']) ?? 0;
     type = StoryType.values.firstWhere(
       (e) => e.name == (json['type']?.toString() ?? ''),
@@ -51,6 +54,7 @@ class StoryModel {
     fontSize = _parseDouble(json['font_size']) ?? 24.0;
     duration = Duration(seconds: _parseInt(json['duration']) ?? 5);
     isLiked = _parseBool(json['is_liked']) ?? false;
+    isViewed = _parseBool(json['is_viewed']) ?? false;
   }
 
   static int? _parseInt(dynamic v) {

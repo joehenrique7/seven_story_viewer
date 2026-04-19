@@ -52,6 +52,7 @@ StorieModel(
       backgroundColor: Color(0xFF3C5198),
       fontSize: 28,
       isLiked: false,
+      isViewed: false
       duration: 15
     ),
   ],
