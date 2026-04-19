@@ -11,7 +11,9 @@ Fornece o visualizador de stories com suporte a imagem, vídeo e texto.
 - Barra de progresso animada por story
 - Pré-carregamento do próximo vídeo
 - Pause/resume por long press
-- Callback opcional para registrar visualização no backend
+- Curtir/descurtir com animação (estado gerenciado internamente)
+- Campo de comentário com pause/resume automático do story ao focar
+- Callbacks opcionais para registrar visualização, curtida e comentário no backend
 
 ## Uso
 
@@ -22,9 +24,11 @@ Navigator.push(
   context,
   MaterialPageRoute(
     builder: (_) => StoryViewerPage(
-      userGroups: stories,         // List<StorieModel>
+      userGroups: stories,           // List<StorieModel>
       initialUserIndex: 0,
-      onStoryView: (id) => repo.registerView(id), // opcional
+      onStoryView: (id) => repo.registerView(id),          // opcional
+      onLike: (id, {required liked}) => repo.like(id, liked), // opcional
+      onComment: (id, comment) => repo.postComment(id, comment), // opcional
     ),
   ),
 );
