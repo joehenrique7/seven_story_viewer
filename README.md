@@ -51,6 +51,8 @@ StorieModel(
       text: 'Treino incrível hoje!',
       backgroundColor: Color(0xFF3C5198),
       fontSize: 28,
+      isLiked: false,
+      duration: 15
     ),
   ],
 );

@@ -38,11 +38,16 @@ class StoryViewerPage extends StatefulWidget {
 class _StoryViewerPageState extends State<StoryViewerPage> with TickerProviderStateMixin {
   late final StoryViewerStore _store;
   late final PageController _pageController;
-  final Set<int> _likedIds = {};
+  late final Set<int> _likedIds;
 
   @override
   void initState() {
     super.initState();
+    _likedIds = {
+      for (final group in widget.userGroups)
+        for (final story in group.stories)
+          if (story.isLiked) story.id,
+    };
     _store = StoryViewerStore(onStoryView: widget.onStoryView);
     _pageController = PageController(initialPage: widget.initialUserIndex);
 
@@ -394,13 +399,9 @@ class _StoryHeader extends StatelessWidget {
       children: [
         CircleAvatar(
           radius: 18,
-          backgroundImage: (group.avatar?.isNotEmpty ?? false)
-              ? CachedNetworkImageProvider(group.avatar!)
-              : null,
+          backgroundImage: (group.avatar?.isNotEmpty ?? false) ? CachedNetworkImageProvider(group.avatar!) : null,
           backgroundColor: Colors.grey[700],
-          child: (group.avatar?.isEmpty ?? true)
-              ? const Icon(Icons.person, color: Colors.white, size: 18)
-              : null,
+          child: (group.avatar?.isEmpty ?? true) ? const Icon(Icons.person, color: Colors.white, size: 18) : null,
         ),
         const SizedBox(width: 10),
         Expanded(
