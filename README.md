@@ -2,10 +2,26 @@
 
 Package exclusivo do aplicativo **Atleta do Vôlei**. Não é publicado no pub.dev e não se destina a uso externo — faz parte da composição interna do projeto.
 
-Fornece o visualizador de stories com suporte a imagem, vídeo e texto.
+Fornece o visualizador de stories com suporte a imagem, vídeo e texto, além do widget de thumbnail para a lista horizontal.
+
+## Fluxo de uso
+
+```
+[StorieThumbnail]  →  usuário toca  →  [StoryViewerPage]
+  lista de bubbles                        tela cheia
+```
+
+**`StorieThumbnail`** exibe o avatar/nome na lista horizontal. Ao tocar, você abre o **`StoryViewerPage`** passando o índice do grupo selecionado.
 
 ## Funcionalidades
 
+### StorieThumbnail
+- Avatar circular com nome do usuário abaixo
+- Anel gradiente (laranja → roxo) quando `hasUnviewed: true`
+- Label "Seu Story" e botão `+` quando `isOwn: true`
+- Callback `onAddStory` para o botão `+`
+
+### StoryViewerPage
 - Exibição de stories em tela cheia com paginação horizontal entre usuários
 - Suporte a três tipos de conteúdo: `image`, `video` e `text`
 - Barra de progresso animada por story
@@ -17,9 +33,36 @@ Fornece o visualizador de stories com suporte a imagem, vídeo e texto.
 
 ## Uso
 
+### Lista horizontal de thumbnails
+
 ```dart
 import 'package:story_viewer/story_viewer.dart';
 
+ListView.builder(
+  scrollDirection: Axis.horizontal,
+  itemCount: stories.length,
+  itemBuilder: (context, index) => StorieThumbnail(
+    storie: stories[index],
+    onTap: () => Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => StoryViewerPage(
+          userGroups: stories,
+          initialUserIndex: index,
+          onStoryView: (id) => repo.registerView(id),
+          onLike: (id, {required liked}) => repo.like(id, liked),
+          onComment: (id, comment) => repo.postComment(id, comment),
+        ),
+      ),
+    ),
+    onAddStory: () { /* abrir fluxo de criação */ },
+  ),
+);
+```
+
+### Abrir o viewer diretamente
+
+```dart
 Navigator.push(
   context,
   MaterialPageRoute(

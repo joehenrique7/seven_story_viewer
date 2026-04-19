@@ -5,6 +5,7 @@ class StorieModel {
   String? username;
   String? avatar;
   bool? isOwn;
+  bool? hasUnviewed;
   List<StoryModel> stories;
 
   StorieModel({
@@ -12,6 +13,7 @@ class StorieModel {
     this.username,
     this.avatar,
     this.isOwn,
+    this.hasUnviewed,
     this.stories = const [],
   });
 
@@ -20,12 +22,10 @@ class StorieModel {
     username = json['username']?.toString();
     avatar = json['avatar']?.toString();
     isOwn = _parseBool(json['is_own']);
+    hasUnviewed = _parseBool(json['has_unviewed']);
     final storiesJson = json['stories'];
     if (storiesJson is List) {
-      stories = storiesJson
-          .whereType<Map<String, dynamic>>()
-          .map(StoryModel.fromJson)
-          .toList();
+      stories = storiesJson.whereType<Map<String, dynamic>>().map(StoryModel.fromJson).toList();
     }
   }
 
