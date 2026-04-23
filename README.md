@@ -29,7 +29,9 @@ Fornece o visualizador de stories com suporte a imagem, vídeo e texto, além do
 - Pause/resume por long press
 - Curtir/descurtir com animação (estado gerenciado internamente)
 - Campo de comentário com pause/resume automático do story ao focar
+- Gradientes automáticos no topo e na base para garantir legibilidade sobre qualquer imagem
 - Callbacks opcionais para registrar visualização, curtida e comentário no backend
+- Ícones e placeholder do campo de comentário customizáveis via parâmetros opcionais
 
 ## Uso
 
@@ -69,13 +71,41 @@ Navigator.push(
     builder: (_) => StoryViewerPage(
       userGroups: stories,           // List<StorieModel>
       initialUserIndex: 0,
-      onStoryView: (id) => repo.registerView(id),          // opcional
+      onStoryView: (id) => repo.registerView(id),             // opcional
       onLike: (id, {required liked}) => repo.like(id, liked), // opcional
       onComment: (id, comment) => repo.postComment(id, comment), // opcional
     ),
   ),
 );
 ```
+
+### Customizando ícones e placeholder
+
+Todos os parâmetros de customização são opcionais — os valores padrão reproduzem o comportamento original.
+
+```dart
+StoryViewerPage(
+  userGroups: stories,
+  initialUserIndex: 0,
+  // ícone do botão de enviar comentário (padrão: Icons.send_rounded)
+  sendIcon: Icons.arrow_upward_rounded,
+  // ícones de curtida (padrões: Icons.favorite / Icons.favorite_border)
+  likedIcon: Icons.thumb_up,
+  unlikedIcon: Icons.thumb_up_outlined,
+  // ícone de fechar (padrão: Icons.close)
+  closeIcon: Icons.arrow_back,
+  // placeholder do campo de comentário (padrão: 'Adicionar comentário...')
+  commentHintText: 'Envie uma mensagem...',
+)
+```
+
+| Parâmetro | Tipo | Padrão |
+|---|---|---|
+| `sendIcon` | `IconData` | `Icons.send_rounded` |
+| `likedIcon` | `IconData` | `Icons.favorite` |
+| `unlikedIcon` | `IconData` | `Icons.favorite_border` |
+| `closeIcon` | `IconData` | `Icons.close` |
+| `commentHintText` | `String` | `'Adicionar comentário...'` |
 
 ## Modelos
 

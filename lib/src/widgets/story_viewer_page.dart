@@ -22,12 +22,32 @@ class StoryViewerPage extends StatefulWidget {
   /// Chamado ao enviar um comentário.
   final Future<void> Function(int storyId, String comment)? onComment;
 
+  /// Ícone do botão de enviar comentário. Padrão: [Icons.send_rounded].
+  final IconData sendIcon;
+
+  /// Ícone exibido quando o story está curtido. Padrão: [Icons.favorite].
+  final IconData likedIcon;
+
+  /// Ícone exibido quando o story não está curtido. Padrão: [Icons.favorite_border].
+  final IconData unlikedIcon;
+
+  /// Ícone do botão de fechar. Padrão: [Icons.close].
+  final IconData closeIcon;
+
+  /// Texto placeholder do campo de comentário. Padrão: 'Adicionar comentário...'.
+  final String commentHintText;
+
   const StoryViewerPage({
     required this.userGroups,
     required this.initialUserIndex,
     this.onStoryView,
     this.onLike,
     this.onComment,
+    this.sendIcon = Icons.send_rounded,
+    this.likedIcon = Icons.favorite,
+    this.unlikedIcon = Icons.favorite_border,
+    this.closeIcon = Icons.close,
+    this.commentHintText = 'Adicionar comentário...',
     super.key,
   });
 
@@ -119,6 +139,11 @@ class _StoryViewerPageState extends State<StoryViewerPage> with TickerProviderSt
                 likedIds: _likedIds,
                 onToggleLike: _toggleLike,
                 onComment: widget.onComment,
+                sendIcon: widget.sendIcon,
+                likedIcon: widget.likedIcon,
+                unlikedIcon: widget.unlikedIcon,
+                closeIcon: widget.closeIcon,
+                commentHintText: widget.commentHintText,
               );
             },
           );
@@ -136,12 +161,22 @@ class _UserStoryPage extends StatefulWidget {
   final Set<int> likedIds;
   final void Function(int storyId) onToggleLike;
   final Future<void> Function(int storyId, String comment)? onComment;
+  final IconData sendIcon;
+  final IconData likedIcon;
+  final IconData unlikedIcon;
+  final IconData closeIcon;
+  final String commentHintText;
 
   const _UserStoryPage({
     required this.store,
     required this.group,
     required this.likedIds,
     required this.onToggleLike,
+    required this.sendIcon,
+    required this.likedIcon,
+    required this.unlikedIcon,
+    required this.closeIcon,
+    required this.commentHintText,
     this.onComment,
   });
 
@@ -218,6 +253,46 @@ class _UserStoryPageState extends State<_UserStoryPage> {
           ),
         ),
 
+        // Gradiente superior para legibilidade do header
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 180,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black.withValues(alpha: 0.55),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+          ),
+        ),
+
+        // Gradiente inferior para legibilidade da barra de comentário/like
+        Positioned(
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: 160,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.bottomCenter,
+                end: Alignment.topCenter,
+                colors: [
+                  Colors.black.withValues(alpha: 0.55),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+          ),
+        ),
+
         // Header (progress bar + avatar + fechar)
         Positioned(
           top: 0,
@@ -247,6 +322,7 @@ class _UserStoryPageState extends State<_UserStoryPage> {
                     listenable: widget.store,
                     builder: (context, _) => _StoryHeader(
                       group: widget.store.currentGroup,
+                      closeIcon: widget.closeIcon,
                       onClose: () => Navigator.of(context).pop(),
                     ),
                   ),
@@ -270,6 +346,10 @@ class _UserStoryPageState extends State<_UserStoryPage> {
               controller: _commentController,
               onToggleLike: widget.onToggleLike,
               onSubmitComment: _submitComment,
+              sendIcon: widget.sendIcon,
+              likedIcon: widget.likedIcon,
+              unlikedIcon: widget.unlikedIcon,
+              commentHintText: widget.commentHintText,
             ),
           ),
         ),
@@ -287,6 +367,10 @@ class _StoryBottomBar extends StatelessWidget {
   final TextEditingController controller;
   final void Function(int storyId) onToggleLike;
   final VoidCallback onSubmitComment;
+  final IconData sendIcon;
+  final IconData likedIcon;
+  final IconData unlikedIcon;
+  final String commentHintText;
 
   const _StoryBottomBar({
     required this.storyId,
@@ -295,6 +379,10 @@ class _StoryBottomBar extends StatelessWidget {
     required this.controller,
     required this.onToggleLike,
     required this.onSubmitComment,
+    required this.sendIcon,
+    required this.likedIcon,
+    required this.unlikedIcon,
+    required this.commentHintText,
   });
 
   @override
@@ -314,11 +402,11 @@ class _StoryBottomBar extends StatelessWidget {
                 textInputAction: TextInputAction.send,
                 onSubmitted: (_) => onSubmitComment(),
                 decoration: InputDecoration(
-                  hintText: 'Adicionar comentário...',
+                  hintText: commentHintText,
                   hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 14),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   suffixIcon: IconButton(
-                    icon: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
+                    icon: Icon(sendIcon, color: Colors.white, size: 20),
                     onPressed: onSubmitComment,
                   ),
                   enabledBorder: OutlineInputBorder(
@@ -342,7 +430,7 @@ class _StoryBottomBar extends StatelessWidget {
                   child: child,
                 ),
                 child: Icon(
-                  isLiked ? Icons.favorite : Icons.favorite_border,
+                  isLiked ? likedIcon : unlikedIcon,
                   key: ValueKey(isLiked),
                   color: isLiked ? Colors.red : Colors.white,
                   size: 30,
@@ -390,8 +478,13 @@ class _StoryContent extends StatelessWidget {
 class _StoryHeader extends StatelessWidget {
   final StorieModel group;
   final VoidCallback onClose;
+  final IconData closeIcon;
 
-  const _StoryHeader({required this.group, required this.onClose});
+  const _StoryHeader({
+    required this.group,
+    required this.onClose,
+    required this.closeIcon,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -417,7 +510,7 @@ class _StoryHeader extends StatelessWidget {
         ),
         GestureDetector(
           onTap: onClose,
-          child: const Icon(Icons.close, color: Colors.white, size: 28),
+          child: Icon(closeIcon, color: Colors.white, size: 28),
         ),
       ],
     );
