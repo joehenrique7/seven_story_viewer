@@ -8,7 +8,7 @@ Fornece o visualizador de stories com suporte a imagem, vídeo e texto, além do
 
 ```
 [StorieThumbnail]  →  usuário toca  →  [StoryViewerPage]
-  lista de bubbles                        tela cheia
+  lista de bubbles                      tela cheia
 ```
 
 **`StorieThumbnail`** exibe o avatar/nome na lista horizontal. Ao tocar, você abre o **`StoryViewerPage`** passando o índice do grupo selecionado.
