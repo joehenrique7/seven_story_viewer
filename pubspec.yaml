@@ -1,6 +1,6 @@
 name: seven_story_viewer
 description: "Atleta do Vôlei story viewer widget — supports image, video and text stories."
-version: 0.1.6
+version: 0.1.7
 homepage:
 
 environment:

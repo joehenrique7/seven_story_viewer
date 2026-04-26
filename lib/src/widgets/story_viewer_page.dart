@@ -37,12 +37,16 @@ class StoryViewerPage extends StatefulWidget {
   /// Texto placeholder do campo de comentário. Padrão: 'Adicionar comentário...'.
   final String commentHintText;
 
+  /// Chamado ao tocar no avatar ou nome do usuário no header.
+  final void Function(StorieModel group)? onAvatarTap;
+
   const StoryViewerPage({
     required this.userGroups,
     required this.initialUserIndex,
     this.onStoryView,
     this.onLike,
     this.onComment,
+    this.onAvatarTap,
     this.sendIcon = Icons.send_rounded,
     this.likedIcon = Icons.favorite,
     this.unlikedIcon = Icons.favorite_border,
@@ -139,6 +143,7 @@ class _StoryViewerPageState extends State<StoryViewerPage> with TickerProviderSt
                 likedIds: _likedIds,
                 onToggleLike: _toggleLike,
                 onComment: widget.onComment,
+                onAvatarTap: widget.onAvatarTap,
                 sendIcon: widget.sendIcon,
                 likedIcon: widget.likedIcon,
                 unlikedIcon: widget.unlikedIcon,
@@ -161,6 +166,7 @@ class _UserStoryPage extends StatefulWidget {
   final Set<int> likedIds;
   final void Function(int storyId) onToggleLike;
   final Future<void> Function(int storyId, String comment)? onComment;
+  final void Function(StorieModel group)? onAvatarTap;
   final IconData sendIcon;
   final IconData likedIcon;
   final IconData unlikedIcon;
@@ -178,6 +184,7 @@ class _UserStoryPage extends StatefulWidget {
     required this.closeIcon,
     required this.commentHintText,
     this.onComment,
+    this.onAvatarTap,
   });
 
   @override
@@ -324,6 +331,9 @@ class _UserStoryPageState extends State<_UserStoryPage> {
                       group: widget.store.currentGroup,
                       closeIcon: widget.closeIcon,
                       onClose: () => Navigator.of(context).pop(),
+                      onAvatarTap: widget.onAvatarTap != null
+                          ? () => widget.onAvatarTap!(widget.store.currentGroup)
+                          : null,
                     ),
                   ),
                 ],
@@ -479,35 +489,44 @@ class _StoryHeader extends StatelessWidget {
   final StorieModel group;
   final VoidCallback onClose;
   final IconData closeIcon;
+  final VoidCallback? onAvatarTap;
 
   const _StoryHeader({
     required this.group,
     required this.onClose,
     required this.closeIcon,
+    this.onAvatarTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        CircleAvatar(
-          radius: 18,
-          backgroundImage: (group.avatar?.isNotEmpty ?? false) ? CachedNetworkImageProvider(group.avatar!) : null,
-          backgroundColor: Colors.grey[700],
-          child: (group.avatar?.isEmpty ?? true) ? const Icon(Icons.person, color: Colors.white, size: 18) : null,
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text(
-            group.username ?? '',
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
-            ),
-            overflow: TextOverflow.ellipsis,
+        GestureDetector(
+          onTap: onAvatarTap,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircleAvatar(
+                radius: 18,
+                backgroundImage: (group.avatar?.isNotEmpty ?? false) ? CachedNetworkImageProvider(group.avatar!) : null,
+                backgroundColor: Colors.grey[700],
+                child: (group.avatar?.isEmpty ?? true) ? const Icon(Icons.person, color: Colors.white, size: 18) : null,
+              ),
+              const SizedBox(width: 10),
+              Text(
+                group.username ?? '',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
         ),
+        const Spacer(),
         GestureDetector(
           onTap: onClose,
           child: Icon(closeIcon, color: Colors.white, size: 28),

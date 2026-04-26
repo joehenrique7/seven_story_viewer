@@ -31,6 +31,7 @@ Fornece o visualizador de stories com suporte a imagem, vídeo e texto, além do
 - Campo de comentário com pause/resume automático do story ao focar
 - Gradientes automáticos no topo e na base para garantir legibilidade sobre qualquer imagem
 - Callbacks opcionais para registrar visualização, curtida e comentário no backend
+- Callback `onAvatarTap` para reagir ao toque no avatar/nome do usuário no header
 - Ícones e placeholder do campo de comentário customizáveis via parâmetros opcionais
 
 ## Uso
@@ -74,6 +75,10 @@ Navigator.push(
       onStoryView: (id) => repo.registerView(id),             // opcional
       onLike: (id, {required liked}) => repo.like(id, liked), // opcional
       onComment: (id, comment) => repo.postComment(id, comment), // opcional
+      onAvatarTap: (group) => Navigator.push(                 // opcional
+        context,
+        MaterialPageRoute(builder: (_) => UserProfilePage(userId: group.id)),
+      ),
     ),
   ),
 );
