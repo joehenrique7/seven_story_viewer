@@ -22,6 +22,15 @@ class StoryViewerPage extends StatefulWidget {
   /// Chamado ao enviar um comentário.
   final Future<void> Function(int storyId, String comment)? onComment;
 
+  /// Chamado ao confirmar a exclusão do próprio story. Retorne `true` em caso
+  /// de sucesso — o viewer fecha em seguida. Habilita o botão de excluir na
+  /// barra do dono.
+  final Future<bool> Function(int storyId)? onDeleteStory;
+
+  /// Chamado ao tocar em "mensagens" na barra do dono, para exibir a lista de
+  /// comentários recebidos (ex.: um bottom sheet montado pelo app).
+  final Future<void> Function(int storyId)? onShowComments;
+
   /// Ícone do botão de enviar comentário. Padrão: [Icons.send_rounded].
   final IconData sendIcon;
 
@@ -33,6 +42,12 @@ class StoryViewerPage extends StatefulWidget {
 
   /// Ícone do botão de fechar. Padrão: [Icons.close].
   final IconData closeIcon;
+
+  /// Ícone do contador de mensagens na barra do dono. Padrão: [Icons.chat_bubble_outline].
+  final IconData commentsIcon;
+
+  /// Ícone do botão de excluir na barra do dono. Padrão: [Icons.delete_outline].
+  final IconData deleteIcon;
 
   /// Texto placeholder do campo de comentário. Padrão: 'Adicionar comentário...'.
   final String commentHintText;
@@ -46,11 +61,15 @@ class StoryViewerPage extends StatefulWidget {
     this.onStoryView,
     this.onLike,
     this.onComment,
+    this.onDeleteStory,
+    this.onShowComments,
     this.onAvatarTap,
     this.sendIcon = Icons.send_rounded,
     this.likedIcon = Icons.favorite,
     this.unlikedIcon = Icons.favorite_border,
     this.closeIcon = Icons.close,
+    this.commentsIcon = Icons.chat_bubble_outline,
+    this.deleteIcon = Icons.delete_outline,
     this.commentHintText = 'Adicionar comentário...',
     super.key,
   });
@@ -143,11 +162,15 @@ class _StoryViewerPageState extends State<StoryViewerPage> with TickerProviderSt
                 likedIds: _likedIds,
                 onToggleLike: _toggleLike,
                 onComment: widget.onComment,
+                onDeleteStory: widget.onDeleteStory,
+                onShowComments: widget.onShowComments,
                 onAvatarTap: widget.onAvatarTap,
                 sendIcon: widget.sendIcon,
                 likedIcon: widget.likedIcon,
                 unlikedIcon: widget.unlikedIcon,
                 closeIcon: widget.closeIcon,
+                commentsIcon: widget.commentsIcon,
+                deleteIcon: widget.deleteIcon,
                 commentHintText: widget.commentHintText,
               );
             },
@@ -166,11 +189,15 @@ class _UserStoryPage extends StatefulWidget {
   final Set<int> likedIds;
   final void Function(int storyId) onToggleLike;
   final Future<void> Function(int storyId, String comment)? onComment;
+  final Future<bool> Function(int storyId)? onDeleteStory;
+  final Future<void> Function(int storyId)? onShowComments;
   final void Function(StorieModel group)? onAvatarTap;
   final IconData sendIcon;
   final IconData likedIcon;
   final IconData unlikedIcon;
   final IconData closeIcon;
+  final IconData commentsIcon;
+  final IconData deleteIcon;
   final String commentHintText;
 
   const _UserStoryPage({
@@ -182,8 +209,12 @@ class _UserStoryPage extends StatefulWidget {
     required this.likedIcon,
     required this.unlikedIcon,
     required this.closeIcon,
+    required this.commentsIcon,
+    required this.deleteIcon,
     required this.commentHintText,
     this.onComment,
+    this.onDeleteStory,
+    this.onShowComments,
     this.onAvatarTap,
   });
 
@@ -217,6 +248,49 @@ class _UserStoryPageState extends State<_UserStoryPage> {
     widget.onComment?.call(widget.store.currentStory.id, text);
     _commentController.clear();
     _focusNode.unfocus();
+  }
+
+  Future<void> _openComments() async {
+    if (widget.onShowComments == null) return;
+    final storyId = widget.store.currentStory.id;
+    widget.store.pause();
+    await widget.onShowComments!(storyId);
+    if (mounted) widget.store.resume();
+  }
+
+  Future<void> _confirmDeleteStory() async {
+    if (widget.onDeleteStory == null) return;
+    final storyId = widget.store.currentStory.id;
+    widget.store.pause();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        title: const Text('Excluir story?', style: TextStyle(color: Colors.white)),
+        content: const Text(
+          'Esta ação não pode ser desfeita.',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancelar', style: TextStyle(color: Colors.white70)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Excluir', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      final ok = await widget.onDeleteStory!(storyId);
+      if (ok && mounted) {
+        Navigator.of(context).pop();
+        return;
+      }
+    }
+    if (mounted) widget.store.resume();
   }
 
   @override
@@ -349,18 +423,34 @@ class _UserStoryPageState extends State<_UserStoryPage> {
           right: 0,
           child: ListenableBuilder(
             listenable: widget.store,
-            builder: (context, _) => _StoryBottomBar(
-              storyId: widget.store.currentStory.id,
-              isLiked: widget.likedIds.contains(widget.store.currentStory.id),
-              focusNode: _focusNode,
-              controller: _commentController,
-              onToggleLike: widget.onToggleLike,
-              onSubmitComment: _submitComment,
-              sendIcon: widget.sendIcon,
-              likedIcon: widget.likedIcon,
-              unlikedIcon: widget.unlikedIcon,
-              commentHintText: widget.commentHintText,
-            ),
+            builder: (context, _) {
+              // No próprio story não faz sentido curtir/comentar: mostramos a
+              // barra do dono (curtidas, mensagens e excluir).
+              if (widget.store.currentGroup.isOwn == true) {
+                final story = widget.store.currentStory;
+                return _OwnerBottomBar(
+                  likesCount: story.likesCount,
+                  commentsCount: story.commentsCount,
+                  likedIcon: widget.likedIcon,
+                  commentsIcon: widget.commentsIcon,
+                  deleteIcon: widget.deleteIcon,
+                  onShowComments: widget.onShowComments != null ? _openComments : null,
+                  onDelete: widget.onDeleteStory != null ? _confirmDeleteStory : null,
+                );
+              }
+              return _StoryBottomBar(
+                storyId: widget.store.currentStory.id,
+                isLiked: widget.likedIds.contains(widget.store.currentStory.id),
+                focusNode: _focusNode,
+                controller: _commentController,
+                onToggleLike: widget.onToggleLike,
+                onSubmitComment: _submitComment,
+                sendIcon: widget.sendIcon,
+                likedIcon: widget.likedIcon,
+                unlikedIcon: widget.unlikedIcon,
+                commentHintText: widget.commentHintText,
+              );
+            },
           ),
         ),
       ],
@@ -446,6 +536,70 @@ class _StoryBottomBar extends StatelessWidget {
                   size: 30,
                 ),
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── _OwnerBottomBar ───────────────────────────────────────────────────────────
+
+class _OwnerBottomBar extends StatelessWidget {
+  final int likesCount;
+  final int commentsCount;
+  final IconData likedIcon;
+  final IconData commentsIcon;
+  final IconData deleteIcon;
+  final VoidCallback? onShowComments;
+  final VoidCallback? onDelete;
+
+  const _OwnerBottomBar({
+    required this.likesCount,
+    required this.commentsCount,
+    required this.likedIcon,
+    required this.commentsIcon,
+    required this.deleteIcon,
+    this.onShowComments,
+    this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+        child: Row(
+          children: [
+            Icon(likedIcon, color: Colors.white, size: 24),
+            const SizedBox(width: 6),
+            Text(
+              '$likesCount',
+              style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(width: 20),
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onShowComments,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(commentsIcon, color: Colors.white, size: 22),
+                  const SizedBox(width: 6),
+                  Text(
+                    commentsCount == 1 ? '1 mensagem' : '$commentsCount mensagens',
+                    style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+            ),
+            const Spacer(),
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onDelete,
+              child: Icon(deleteIcon, color: Colors.white, size: 26),
             ),
           ],
         ),

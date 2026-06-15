@@ -13,6 +13,9 @@ class StoryModel {
   Duration duration;
   bool isLiked;
   bool isViewed;
+  int likesCount;
+  int commentsCount;
+  int viewsCount;
 
   StoryModel({
     this.id = 0,
@@ -25,6 +28,9 @@ class StoryModel {
     this.duration = const Duration(seconds: 5),
     this.isLiked = false,
     this.isViewed = false,
+    this.likesCount = 0,
+    this.commentsCount = 0,
+    this.viewsCount = 0,
   });
 
   StoryModel.fromJson(Map<String, dynamic> json)
@@ -35,7 +41,10 @@ class StoryModel {
         fontSize = 24,
         duration = const Duration(seconds: 5),
         isLiked = false,
-        isViewed = false {
+        isViewed = false,
+        likesCount = 0,
+        commentsCount = 0,
+        viewsCount = 0 {
     id = _parseInt(json['id']) ?? 0;
     type = StoryType.values.firstWhere(
       (e) => e.name == (json['type']?.toString() ?? ''),
@@ -55,6 +64,9 @@ class StoryModel {
     duration = Duration(seconds: _parseInt(json['duration']) ?? 5);
     isLiked = _parseBool(json['is_liked']) ?? false;
     isViewed = _parseBool(json['is_viewed']) ?? false;
+    likesCount = _parseInt(json['likes_count']) ?? 0;
+    commentsCount = _parseInt(json['comments_count']) ?? 0;
+    viewsCount = _parseInt(json['views_count']) ?? 0;
   }
 
   static int? _parseInt(dynamic v) {
