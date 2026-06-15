@@ -331,9 +331,7 @@ class _UserStoryPageState extends State<_UserStoryPage> {
                       group: widget.store.currentGroup,
                       closeIcon: widget.closeIcon,
                       onClose: () => Navigator.of(context).pop(),
-                      onAvatarTap: widget.onAvatarTap != null
-                          ? () => widget.onAvatarTap!(widget.store.currentGroup)
-                          : null,
+                      onAvatarTap: widget.onAvatarTap != null ? () => widget.onAvatarTap!(widget.store.currentGroup) : null,
                     ),
                   ),
                 ],
@@ -342,9 +340,11 @@ class _UserStoryPageState extends State<_UserStoryPage> {
           ),
         ),
 
-        // Barra inferior (comentário + like)
+        // Barra inferior (comentário + like) — sobe junto com o teclado.
+        // O Scaffold usa resizeToAvoidBottomInset: false, então compensamos
+        // manualmente o inset do teclado para o campo não ficar encoberto.
         Positioned(
-          bottom: 0,
+          bottom: MediaQuery.of(context).viewInsets.bottom,
           left: 0,
           right: 0,
           child: ListenableBuilder(
