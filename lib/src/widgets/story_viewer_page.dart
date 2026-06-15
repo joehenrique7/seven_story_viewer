@@ -69,7 +69,7 @@ class StoryViewerPage extends StatefulWidget {
     this.unlikedIcon = Icons.favorite_border,
     this.closeIcon = Icons.close,
     this.commentsIcon = Icons.chat_bubble_outline,
-    this.deleteIcon = Icons.delete_outline,
+    this.deleteIcon = Icons.delete_sweep_outlined,
     this.commentHintText = 'Adicionar comentário...',
     super.key,
   });
