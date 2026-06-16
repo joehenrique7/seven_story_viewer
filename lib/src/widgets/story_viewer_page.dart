@@ -55,6 +55,12 @@ class StoryViewerPage extends StatefulWidget {
   /// Chamado ao tocar no avatar ou nome do usuário no header.
   final void Function(StorieModel group)? onAvatarTap;
 
+  /// Quando `true` (padrão), o viewer exibe seu próprio diálogo de confirmação
+  /// antes de chamar [onDeleteStory]. Quando `false`, chama [onDeleteStory]
+  /// diretamente, deixando o app apresentar a própria UI (ex.: um menu com
+  /// opções de "excluir" ou "remover do destaque").
+  final bool confirmDelete;
+
   const StoryViewerPage({
     required this.userGroups,
     required this.initialUserIndex,
@@ -64,6 +70,7 @@ class StoryViewerPage extends StatefulWidget {
     this.onDeleteStory,
     this.onShowComments,
     this.onAvatarTap,
+    this.confirmDelete = true,
     this.sendIcon = Icons.send_rounded,
     this.likedIcon = Icons.favorite,
     this.unlikedIcon = Icons.favorite_border,
@@ -165,6 +172,7 @@ class _StoryViewerPageState extends State<StoryViewerPage> with TickerProviderSt
                 onDeleteStory: widget.onDeleteStory,
                 onShowComments: widget.onShowComments,
                 onAvatarTap: widget.onAvatarTap,
+                confirmDelete: widget.confirmDelete,
                 sendIcon: widget.sendIcon,
                 likedIcon: widget.likedIcon,
                 unlikedIcon: widget.unlikedIcon,
@@ -192,6 +200,7 @@ class _UserStoryPage extends StatefulWidget {
   final Future<bool> Function(int storyId)? onDeleteStory;
   final Future<void> Function(int storyId)? onShowComments;
   final void Function(StorieModel group)? onAvatarTap;
+  final bool confirmDelete;
   final IconData sendIcon;
   final IconData likedIcon;
   final IconData unlikedIcon;
@@ -216,6 +225,7 @@ class _UserStoryPage extends StatefulWidget {
     this.onDeleteStory,
     this.onShowComments,
     this.onAvatarTap,
+    this.confirmDelete = true,
   });
 
   @override
@@ -262,27 +272,29 @@ class _UserStoryPageState extends State<_UserStoryPage> {
     if (widget.onDeleteStory == null) return;
     final storyId = widget.store.currentStory.id;
     widget.store.pause();
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1E1E),
-        title: const Text('Excluir story?', style: TextStyle(color: Colors.white)),
-        content: const Text(
-          'Esta ação não pode ser desfeita.',
-          style: TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancelar', style: TextStyle(color: Colors.white70)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Excluir', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
+    final confirmed = widget.confirmDelete
+        ? await showDialog<bool>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              backgroundColor: const Color(0xFF1E1E1E),
+              title: const Text('Excluir story?', style: TextStyle(color: Colors.white)),
+              content: const Text(
+                'Esta ação não pode ser desfeita.',
+                style: TextStyle(color: Colors.white70),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(false),
+                  child: const Text('Cancelar', style: TextStyle(color: Colors.white70)),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(true),
+                  child: const Text('Excluir', style: TextStyle(color: Colors.red)),
+                ),
+              ],
+            ),
+          )
+        : true;
     if (confirmed == true) {
       final ok = await widget.onDeleteStory!(storyId);
       if (ok && mounted) {
