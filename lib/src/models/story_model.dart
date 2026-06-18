@@ -16,6 +16,7 @@ class StoryModel {
   int likesCount;
   int commentsCount;
   int viewsCount;
+  DateTime? createdAt;
 
   StoryModel({
     this.id = 0,
@@ -31,6 +32,7 @@ class StoryModel {
     this.likesCount = 0,
     this.commentsCount = 0,
     this.viewsCount = 0,
+    this.createdAt,
   });
 
   StoryModel.fromJson(Map<String, dynamic> json)
@@ -67,6 +69,7 @@ class StoryModel {
     likesCount = _parseInt(json['likes_count']) ?? 0;
     commentsCount = _parseInt(json['comments_count']) ?? 0;
     viewsCount = _parseInt(json['views_count']) ?? 0;
+    createdAt = DateTime.tryParse(json['created_at']?.toString() ?? '')?.toLocal();
   }
 
   static int? _parseInt(dynamic v) {

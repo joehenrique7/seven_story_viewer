@@ -415,6 +415,7 @@ class _UserStoryPageState extends State<_UserStoryPage> {
                     listenable: widget.store,
                     builder: (context, _) => _StoryHeader(
                       group: widget.store.currentGroup,
+                      createdAt: widget.store.currentStory.createdAt,
                       closeIcon: widget.closeIcon,
                       onClose: () => Navigator.of(context).pop(),
                       onAvatarTap: widget.onAvatarTap != null ? () => widget.onAvatarTap!(widget.store.currentGroup) : null,
@@ -653,6 +654,7 @@ class _StoryContent extends StatelessWidget {
 
 class _StoryHeader extends StatelessWidget {
   final StorieModel group;
+  final DateTime? createdAt;
   final VoidCallback onClose;
   final IconData closeIcon;
   final VoidCallback? onAvatarTap;
@@ -661,8 +663,17 @@ class _StoryHeader extends StatelessWidget {
     required this.group,
     required this.onClose,
     required this.closeIcon,
+    this.createdAt,
     this.onAvatarTap,
   });
+
+  String _timeAgo(DateTime date) {
+    final diff = DateTime.now().difference(date);
+    if (diff.inSeconds < 60) return 'agora';
+    if (diff.inMinutes < 60) return '${diff.inMinutes} min';
+    if (diff.inHours < 24) return '${diff.inHours} h';
+    return '${diff.inDays} d';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -680,14 +691,29 @@ class _StoryHeader extends StatelessWidget {
                 child: (group.avatar?.isEmpty ?? true) ? const Icon(Icons.person, color: Colors.white, size: 18) : null,
               ),
               const SizedBox(width: 10),
-              Text(
-                group.username ?? '',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                ),
-                overflow: TextOverflow.ellipsis,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    group.username ?? '',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (createdAt != null)
+                    Text(
+                      _timeAgo(createdAt!),
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.7),
+                        fontWeight: FontWeight.w400,
+                        fontSize: 11,
+                      ),
+                    ),
+                ],
               ),
             ],
           ),
