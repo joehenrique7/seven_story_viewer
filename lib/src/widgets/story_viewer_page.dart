@@ -9,6 +9,9 @@ import 'story_progress_bar.dart';
 import 'story_text_content.dart';
 import 'story_video_content.dart';
 
+/// Proporção do story (1080×1920).
+const double _kStoryAspectRatio = 9 / 16;
+
 class StoryViewerPage extends StatefulWidget {
   final List<StorieModel> userGroups;
   final int initialUserIndex;
@@ -315,6 +318,74 @@ class _UserStoryPageState extends State<_UserStoryPage> {
 
   @override
   Widget build(BuildContext context) {
+    // A barra fica abaixo do quadro. Com o teclado aberto ela sobe por cima da
+    // imagem (que escurece), sem redimensionar o quadro.
+    final safeBottom = MediaQuery.viewPaddingOf(context).bottom;
+    final keyboard = MediaQuery.viewInsetsOf(context).bottom;
+    final lift = keyboard > safeBottom ? keyboard - safeBottom : 0.0;
+
+    return SafeArea(
+      bottom: false,
+      child: Column(
+        children: [
+          Expanded(
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: AspectRatio(
+                aspectRatio: _kStoryAspectRatio,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: _buildFrame(),
+                ),
+              ),
+            ),
+          ),
+          Transform.translate(
+            offset: Offset(0, -lift),
+            child: ColoredBox(
+              color: Colors.black,
+              child: Padding(
+                padding: EdgeInsets.only(bottom: safeBottom),
+                child: ListenableBuilder(
+                  listenable: widget.store,
+                  builder: (context, _) {
+                    // No próprio story não faz sentido curtir/comentar: mostramos a
+                    // barra do dono (curtidas, mensagens e excluir).
+                    if (widget.store.currentGroup.isOwn == true) {
+                      final story = widget.store.currentStory;
+                      return _OwnerBottomBar(
+                        likesCount: story.likesCount,
+                        commentsCount: story.commentsCount,
+                        likedIcon: widget.likedIcon,
+                        commentsIcon: widget.commentsIcon,
+                        deleteIcon: widget.deleteIcon,
+                        onShowComments: widget.onShowComments != null ? _openComments : null,
+                        onDelete: widget.onDeleteStory != null ? _confirmDeleteStory : null,
+                      );
+                    }
+                    return _StoryBottomBar(
+                      storyId: widget.store.currentStory.id,
+                      isLiked: widget.likedIds.contains(widget.store.currentStory.id),
+                      focusNode: _focusNode,
+                      controller: _commentController,
+                      onToggleLike: widget.onToggleLike,
+                      onSubmitComment: _submitComment,
+                      sendIcon: widget.sendIcon,
+                      likedIcon: widget.likedIcon,
+                      unlikedIcon: widget.unlikedIcon,
+                      commentHintText: widget.commentHintText,
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFrame() {
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -324,17 +395,12 @@ class _UserStoryPageState extends State<_UserStoryPage> {
           builder: (context, _) => _StoryContent(store: widget.store),
         ),
 
-        // Área de gestos (tap/long press) — exclui os últimos 80px (bottom bar)
-        Positioned(
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 80,
-          child: GestureDetector(
+        // Área de gestos (tap/long press)
+        LayoutBuilder(
+          builder: (context, constraints) => GestureDetector(
             behavior: HitTestBehavior.translucent,
             onTapUp: (details) {
-              final screenWidth = MediaQuery.of(context).size.width;
-              if (details.globalPosition.dx < screenWidth / 2) {
+              if (details.localPosition.dx < constraints.maxWidth / 2) {
                 widget.store.goToPreviousStory();
               } else {
                 widget.store.goToNextStory();
@@ -352,35 +418,17 @@ class _UserStoryPageState extends State<_UserStoryPage> {
           left: 0,
           right: 0,
           height: 180,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.black.withValues(alpha: 0.55),
-                  Colors.transparent,
-                ],
-              ),
-            ),
-          ),
-        ),
-
-        // Gradiente inferior para legibilidade da barra de comentário/like
-        Positioned(
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: 160,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.bottomCenter,
-                end: Alignment.topCenter,
-                colors: [
-                  Colors.black.withValues(alpha: 0.55),
-                  Colors.transparent,
-                ],
+          child: IgnorePointer(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withValues(alpha: 0.55),
+                    Colors.transparent,
+                  ],
+                ),
               ),
             ),
           ),
@@ -391,80 +439,59 @@ class _UserStoryPageState extends State<_UserStoryPage> {
           top: 0,
           left: 0,
           right: 0,
-          child: SafeArea(
-            bottom: false,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ListenableBuilder(
-                    listenable: widget.store,
-                    builder: (context, _) {
-                      final animation = widget.store.animationController;
-                      if (animation == null) return const SizedBox(height: 3);
-                      return StoryProgressBar(
-                        totalStories: widget.group.stories.length,
-                        currentIndex: widget.store.currentStoryIndex,
-                        animation: animation,
-                      );
-                    },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ListenableBuilder(
+                  listenable: widget.store,
+                  builder: (context, _) {
+                    final animation = widget.store.animationController;
+                    if (animation == null) return const SizedBox(height: 3);
+                    return StoryProgressBar(
+                      totalStories: widget.group.stories.length,
+                      currentIndex: widget.store.currentStoryIndex,
+                      animation: animation,
+                    );
+                  },
+                ),
+                const SizedBox(height: 12),
+                ListenableBuilder(
+                  listenable: widget.store,
+                  builder: (context, _) => _StoryHeader(
+                    group: widget.store.currentGroup,
+                    createdAt: widget.store.currentStory.createdAt,
+                    closeIcon: widget.closeIcon,
+                    onClose: () => Navigator.of(context).pop(),
+                    onAvatarTap: widget.onAvatarTap != null ? () => widget.onAvatarTap!(widget.store.currentGroup) : null,
                   ),
-                  const SizedBox(height: 12),
-                  ListenableBuilder(
-                    listenable: widget.store,
-                    builder: (context, _) => _StoryHeader(
-                      group: widget.store.currentGroup,
-                      createdAt: widget.store.currentStory.createdAt,
-                      closeIcon: widget.closeIcon,
-                      onClose: () => Navigator.of(context).pop(),
-                      onAvatarTap: widget.onAvatarTap != null ? () => widget.onAvatarTap!(widget.store.currentGroup) : null,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
 
-        // Barra inferior (comentário + like) — sobe junto com o teclado.
-        // O Scaffold usa resizeToAvoidBottomInset: false, então compensamos
-        // manualmente o inset do teclado para o campo não ficar encoberto.
-        Positioned(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-          left: 0,
-          right: 0,
-          child: ListenableBuilder(
-            listenable: widget.store,
-            builder: (context, _) {
-              // No próprio story não faz sentido curtir/comentar: mostramos a
-              // barra do dono (curtidas, mensagens e excluir).
-              if (widget.store.currentGroup.isOwn == true) {
-                final story = widget.store.currentStory;
-                return _OwnerBottomBar(
-                  likesCount: story.likesCount,
-                  commentsCount: story.commentsCount,
-                  likedIcon: widget.likedIcon,
-                  commentsIcon: widget.commentsIcon,
-                  deleteIcon: widget.deleteIcon,
-                  onShowComments: widget.onShowComments != null ? _openComments : null,
-                  onDelete: widget.onDeleteStory != null ? _confirmDeleteStory : null,
-                );
-              }
-              return _StoryBottomBar(
-                storyId: widget.store.currentStory.id,
-                isLiked: widget.likedIds.contains(widget.store.currentStory.id),
-                focusNode: _focusNode,
-                controller: _commentController,
-                onToggleLike: widget.onToggleLike,
-                onSubmitComment: _submitComment,
-                sendIcon: widget.sendIcon,
-                likedIcon: widget.likedIcon,
-                unlikedIcon: widget.unlikedIcon,
-                commentHintText: widget.commentHintText,
-              );
-            },
-          ),
+        // Escurece o story enquanto o usuário digita, para o campo (que sobe
+        // por cima da imagem junto com o teclado) ficar legível. Tocar fora
+        // fecha o teclado em vez de trocar de story.
+        ListenableBuilder(
+          listenable: _focusNode,
+          builder: (context, _) {
+            final typing = _focusNode.hasFocus;
+            return IgnorePointer(
+              ignoring: !typing,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: _focusNode.unfocus,
+                child: AnimatedOpacity(
+                  opacity: typing ? 1 : 0,
+                  duration: const Duration(milliseconds: 200),
+                  child: ColoredBox(color: Colors.black.withValues(alpha: 0.6)),
+                ),
+              ),
+            );
+          },
         ),
       ],
     );
@@ -500,58 +527,55 @@ class _StoryBottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-        child: Row(
-          children: [
-            Expanded(
-              child: TextField(
-                focusNode: focusNode,
-                controller: controller,
-                style: const TextStyle(color: Colors.white, fontSize: 14),
-                cursorColor: Colors.white,
-                textInputAction: TextInputAction.send,
-                onSubmitted: (_) => onSubmitComment(),
-                decoration: InputDecoration(
-                  hintText: commentHintText,
-                  hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 14),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  suffixIcon: IconButton(
-                    icon: Icon(sendIcon, color: Colors.white, size: 20),
-                    onPressed: onSubmitComment,
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(24),
-                    borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.5)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(24),
-                    borderSide: const BorderSide(color: Colors.white),
-                  ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              focusNode: focusNode,
+              controller: controller,
+              style: const TextStyle(color: Colors.white, fontSize: 14),
+              cursorColor: Colors.white,
+              textInputAction: TextInputAction.send,
+              onSubmitted: (_) => onSubmitComment(),
+              decoration: InputDecoration(
+                hintText: commentHintText,
+                hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 14),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                suffixIcon: IconButton(
+                  icon: Icon(sendIcon, color: Colors.white, size: 20),
+                  onPressed: onSubmitComment,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.5)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: const BorderSide(color: Colors.white),
                 ),
               ),
             ),
-            const SizedBox(width: 8),
-            GestureDetector(
-              onTap: () => onToggleLike(storyId),
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 200),
-                transitionBuilder: (child, animation) => ScaleTransition(
-                  scale: animation,
-                  child: child,
-                ),
-                child: Icon(
-                  isLiked ? likedIcon : unlikedIcon,
-                  key: ValueKey(isLiked),
-                  color: isLiked ? Colors.red : Colors.white,
-                  size: 30,
-                ),
+          ),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: () => onToggleLike(storyId),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              transitionBuilder: (child, animation) => ScaleTransition(
+                scale: animation,
+                child: child,
+              ),
+              child: Icon(
+                isLiked ? likedIcon : unlikedIcon,
+                key: ValueKey(isLiked),
+                color: isLiked ? Colors.red : Colors.white,
+                size: 30,
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -580,42 +604,39 @@ class _OwnerBottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-        child: Row(
-          children: [
-            Icon(likedIcon, color: Colors.white, size: 24),
-            const SizedBox(width: 6),
-            Text(
-              '$likesCount',
-              style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+      child: Row(
+        children: [
+          Icon(likedIcon, color: Colors.white, size: 24),
+          const SizedBox(width: 6),
+          Text(
+            '$likesCount',
+            style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(width: 20),
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onShowComments,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(commentsIcon, color: Colors.white, size: 22),
+                const SizedBox(width: 6),
+                Text(
+                  commentsCount == 1 ? '1 mensagem' : '$commentsCount mensagens',
+                  style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
+                ),
+              ],
             ),
-            const SizedBox(width: 20),
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: onShowComments,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(commentsIcon, color: Colors.white, size: 22),
-                  const SizedBox(width: 6),
-                  Text(
-                    commentsCount == 1 ? '1 mensagem' : '$commentsCount mensagens',
-                    style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
-                  ),
-                ],
-              ),
-            ),
-            const Spacer(),
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: onDelete,
-              child: Icon(deleteIcon, color: Colors.white, size: 26),
-            ),
-          ],
-        ),
+          ),
+          const Spacer(),
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onDelete,
+            child: Icon(deleteIcon, color: Colors.white, size: 26),
+          ),
+        ],
       ),
     );
   }
