@@ -34,6 +34,10 @@ class StoryViewerPage extends StatefulWidget {
   /// comentários recebidos (ex.: um bottom sheet montado pelo app).
   final Future<void> Function(int storyId)? onShowComments;
 
+  /// Chamado ao tocar no contador de curtidas na barra do dono, para exibir
+  /// quem curtiu o story (ex.: um bottom sheet montado pelo app).
+  final Future<void> Function(int storyId)? onShowLikes;
+
   /// Ícone do botão de enviar comentário. Padrão: [Icons.send_rounded].
   final IconData sendIcon;
 
@@ -72,6 +76,7 @@ class StoryViewerPage extends StatefulWidget {
     this.onComment,
     this.onDeleteStory,
     this.onShowComments,
+    this.onShowLikes,
     this.onAvatarTap,
     this.confirmDelete = true,
     this.sendIcon = Icons.send_rounded,
@@ -174,6 +179,7 @@ class _StoryViewerPageState extends State<StoryViewerPage> with TickerProviderSt
                 onComment: widget.onComment,
                 onDeleteStory: widget.onDeleteStory,
                 onShowComments: widget.onShowComments,
+                onShowLikes: widget.onShowLikes,
                 onAvatarTap: widget.onAvatarTap,
                 confirmDelete: widget.confirmDelete,
                 sendIcon: widget.sendIcon,
@@ -202,6 +208,7 @@ class _UserStoryPage extends StatefulWidget {
   final Future<void> Function(int storyId, String comment)? onComment;
   final Future<bool> Function(int storyId)? onDeleteStory;
   final Future<void> Function(int storyId)? onShowComments;
+  final Future<void> Function(int storyId)? onShowLikes;
   final void Function(StorieModel group)? onAvatarTap;
   final bool confirmDelete;
   final IconData sendIcon;
@@ -227,6 +234,7 @@ class _UserStoryPage extends StatefulWidget {
     this.onComment,
     this.onDeleteStory,
     this.onShowComments,
+    this.onShowLikes,
     this.onAvatarTap,
     this.confirmDelete = true,
   });
@@ -268,6 +276,14 @@ class _UserStoryPageState extends State<_UserStoryPage> {
     final storyId = widget.store.currentStory.id;
     widget.store.pause();
     await widget.onShowComments!(storyId);
+    if (mounted) widget.store.resume();
+  }
+
+  Future<void> _openLikes() async {
+    if (widget.onShowLikes == null) return;
+    final storyId = widget.store.currentStory.id;
+    widget.store.pause();
+    await widget.onShowLikes!(storyId);
     if (mounted) widget.store.resume();
   }
 
@@ -360,6 +376,7 @@ class _UserStoryPageState extends State<_UserStoryPage> {
                         commentsIcon: widget.commentsIcon,
                         deleteIcon: widget.deleteIcon,
                         onShowComments: widget.onShowComments != null ? _openComments : null,
+                        onShowLikes: widget.onShowLikes != null ? _openLikes : null,
                         onDelete: widget.onDeleteStory != null ? _confirmDeleteStory : null,
                       );
                     }
@@ -590,6 +607,7 @@ class _OwnerBottomBar extends StatelessWidget {
   final IconData commentsIcon;
   final IconData deleteIcon;
   final VoidCallback? onShowComments;
+  final VoidCallback? onShowLikes;
   final VoidCallback? onDelete;
 
   const _OwnerBottomBar({
@@ -599,6 +617,7 @@ class _OwnerBottomBar extends StatelessWidget {
     required this.commentsIcon,
     required this.deleteIcon,
     this.onShowComments,
+    this.onShowLikes,
     this.onDelete,
   });
 
@@ -608,11 +627,20 @@ class _OwnerBottomBar extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
       child: Row(
         children: [
-          Icon(likedIcon, color: Colors.white, size: 24),
-          const SizedBox(width: 6),
-          Text(
-            '$likesCount',
-            style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onShowLikes,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(likedIcon, color: Colors.white, size: 24),
+                const SizedBox(width: 6),
+                Text(
+                  '$likesCount',
+                  style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
           ),
           const SizedBox(width: 20),
           GestureDetector(

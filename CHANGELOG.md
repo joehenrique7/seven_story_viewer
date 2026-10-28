@@ -1,3 +1,7 @@
+## 0.1.14
+
+* Adiciona o callback `onShowLikes` em `StoryViewerPage`: tocar no contador de curtidas da barra do dono chama o app com o id do story (para exibir quem curtiu). O story fica pausado enquanto o callback não termina, como em `onShowComments`.
+
 ## 0.1.13
 
 * Ao abrir (ou deslizar para) um usuário, o viewer começa pelo primeiro story ainda não visto (`isViewed`), em vez de sempre do primeiro. Se tudo já foi visto, recomeça do início.
