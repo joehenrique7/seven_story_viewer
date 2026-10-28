@@ -1,3 +1,8 @@
+## 0.1.13
+
+* Ao abrir (ou deslizar para) um usuário, o viewer começa pelo primeiro story ainda não visto (`isViewed`), em vez de sempre do primeiro. Se tudo já foi visto, recomeça do início.
+* O story exibido é marcado como visto localmente, então reabrir o grupo na mesma sessão continua de onde parou.
+
 ## 0.1.12
 
 * O story é exibido num quadro 9:16 (1080×1920) encostado no topo, com cantos arredondados — o mesmo enquadramento do editor, sem cortar as laterais em telas mais altas que 9:16.

@@ -34,14 +34,22 @@ class StoryViewerStore extends ChangeNotifier {
     _vsync = vsync;
     userGroups = groups;
     currentUserIndex = initialUserIndex;
-    currentStoryIndex = 0;
+    currentStoryIndex = _firstUnviewedIndex();
     unawaited(_startCurrentStory());
   }
 
   void setUserGroup(int index) {
     currentUserIndex = index;
-    currentStoryIndex = 0;
+    currentStoryIndex = _firstUnviewedIndex();
     unawaited(_startCurrentStory());
+  }
+
+  /// Entra no grupo pelo primeiro story ainda não visto, como o Instagram:
+  /// quem já viu os antigos vai direto aos novos. Tudo visto, recomeça do início.
+  int _firstUnviewedIndex() {
+    if (currentUserIndex < 0 || currentUserIndex >= userGroups.length) return 0;
+    final index = currentGroup.stories.indexWhere((s) => !s.isViewed);
+    return index == -1 ? 0 : index;
   }
 
   void goToNextStory() {
@@ -91,6 +99,8 @@ class StoryViewerStore extends ChangeNotifier {
 
     notifyListeners();
 
+    // Marca localmente: reabrir o grupo na mesma sessão já continua de onde parou.
+    currentStory.isViewed = true;
     unawaited(onStoryView?.call(currentStory.id) ?? Future.value());
 
     if (currentStory.type == StoryType.video && currentStory.mediaUrl != null) {
